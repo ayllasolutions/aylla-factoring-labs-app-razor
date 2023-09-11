@@ -1,0 +1,197 @@
+﻿@page "/counter"
+@using BlazorApp1.Pages
+@using System.Net.Http
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Reporte</h1>
+
+<p role="status">Report date: @fecha</p>
+<p role="status">Message: @mensaje</p>
+<p role="status">Equifax Stat: @equifax</p>
+<p role="status">Malla Stat: @malla</p>
+<p role="status">Achef Stat: @achef</p>
+
+<button class="btn btn-primary" @onclick="PintaReporte">Ejecutar Reporte</button>
+
+@code {
+    private int currentCount = 0;
+    private string? fecha;
+    private string? mensaje;
+    private string? equifax;
+    private string? malla;
+    private string? achef;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+
+    private async Task PintaReporte()
+    {
+        Reporte pintado = new Reporte();
+        pintado = await getReporte();
+        fecha = pintado.fecha;  
+        mensaje = pintado.texto;
+        equifax = pintado.equifax.ToString();
+        malla = pintado.malla.ToString();
+        achef = pintado.achef.ToString();
+        StateHasChanged();
+    }
+
+    private async Task<Reporte> getReporte()
+    {
+        //Define objeto de salida para mostrar en la web
+        Reporte miReporte = new Reporte();
+        //Define bandera de avance para el proceso
+        bool flagCall = true;
+
+        //Define acceso a los parametros de ambiente
+        string apiequifax = Configuration["parameters:apiequifax"];
+        Console.WriteLine(apiequifax);
+        string apimalla = Configuration["parameters:apimalla"];
+        Console.WriteLine(apimalla);
+        string apiachef = Configuration["parameters:apiachef"];
+        Console.WriteLine(apiachef);
+        string timeout = Configuration["parameters:tiempoespera"];
+        Console.WriteLine(timeout);
+
+        //LLamar servicio equifax
+        // Crear una instancia de HttpClient
+        using (HttpClient httpClient = new HttpClient())
+        {
+            httpClient.Timeout = TimeSpan.FromSeconds(int.Parse(timeout));
+            try
+            {
+                // Realizar la solicitud GET de forma síncrona
+                HttpResponseMessage response = await httpClient.GetAsync(apiequifax);
+
+                // Verificar si la solicitud fue exitosa (código de estado 200)
+                if (response.IsSuccessStatusCode)
+                {   
+                    // Leer y mostrar el contenido de la respuesta
+                    string contenido = response.Content.ReadAsStringAsync().Result;
+                    miReporte.fecha = DateTime.Now.ToString();
+                    miReporte.texto = "Respuesta Equifax: " + contenido;
+                    miReporte.equifax = true;
+                    miReporte.malla = false;
+                    miReporte.achef = false;
+                }
+                else
+                {
+                    flagCall = false;
+                    miReporte.fecha = DateTime.Now.ToString();
+                    miReporte.texto = "La solicitud Equifax no fue exitosa. Código de estado: " + (int)response.StatusCode;
+                    miReporte.equifax = false;
+                    miReporte.malla = false;
+                    miReporte.achef = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                flagCall = false;
+                miReporte.fecha = DateTime.Now.ToString();
+                miReporte.texto = "Error al realizar la solicitud Equifax: " + ex.StackTrace;
+                miReporte.equifax = false;
+                miReporte.malla = false;
+                miReporte.achef = false;
+            }
+        }
+
+
+        //LLamar servicio malla
+        if (flagCall)
+        {
+            // Crear una instancia de HttpClient
+            using (HttpClient httpClient = new HttpClient())
+            {
+                httpClient.Timeout = TimeSpan.FromSeconds(int.Parse(timeout));
+                try
+                {
+                    // Realizar la solicitud GET de forma síncrona
+                    HttpResponseMessage response = await httpClient.GetAsync(apimalla);
+
+                    // Verificar si la solicitud fue exitosa (código de estado 200)
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Leer y mostrar el contenido de la respuesta
+                        string contenido = response.Content.ReadAsStringAsync().Result;
+                        miReporte.fecha = DateTime.Now.ToString();
+                        miReporte.texto = "Respuesta Malla: " + contenido;
+                        miReporte.malla = true;
+                        miReporte.achef = false;
+                    }
+                    else
+                    {
+                        flagCall = false;
+                        miReporte.fecha = DateTime.Now.ToString();
+                        miReporte.texto = "La solicitud Malla no fue exitosa. Código de estado: " + (int)response.StatusCode;
+                        miReporte.malla = false;
+                        miReporte.achef = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    flagCall = false;
+                    miReporte.fecha = DateTime.Now.ToString();
+                    miReporte.texto = "Error al realizar la solicitud Malla: " + ex.Message;
+                    miReporte.malla = false;
+                    miReporte.achef = false;
+                }
+            }
+        }
+
+        //Llamar servicio achef
+        if (flagCall)
+        {
+            // Crear una instancia de HttpClient
+            using (HttpClient httpClient = new HttpClient())
+            {
+                httpClient.Timeout = TimeSpan.FromSeconds(int.Parse(timeout));
+                try
+                {
+                    // Realizar la solicitud GET de forma síncrona
+                    HttpResponseMessage response = await httpClient.GetAsync(apiachef);
+
+                    // Verificar si la solicitud fue exitosa (código de estado 200)
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Leer y mostrar el contenido de la respuesta
+                        string contenido = response.Content.ReadAsStringAsync().Result;
+                        miReporte.fecha = DateTime.Now.ToString();
+                        miReporte.texto = "Respuesta Achef: " + contenido;
+                        miReporte.achef = true;
+                    }
+                    else
+                    {
+                        flagCall = false;
+                        miReporte.fecha = DateTime.Now.ToString();
+                        miReporte.texto = "La solicitud Achef no fue exitosa. Código de estado: " + (int)response.StatusCode;
+                        miReporte.achef = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    flagCall = false;
+                    miReporte.fecha = DateTime.Now.ToString();
+                    miReporte.texto = "Error al realizar la solicitud Achef: " + ex.StackTrace;
+                    miReporte.achef = false;
+                }
+            }
+        }
+
+        if (flagCall)
+        {
+
+            return miReporte;
+        }
+        else
+        {
+            return miReporte;
+        }
+    }
+
+
+}
